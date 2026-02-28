@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<!-- saved from url=(0022)http://localhost:8000/ -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FarmAI – Smart Farming Assistant for India</title>
+  <meta name="description" content="AI-powered assistant for Indian farmers. Get instant answers about crops, pests, fertilizers, and government schemes in your language.">
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+  <link href="./FarmAI – Smart Farming Assistant for India_files/css2" rel="stylesheet">
+  <link rel="stylesheet" href="./FarmAI – Smart Farming Assistant for India_files/style.css">
+</head>
+<body>
+
+<!-- ─── HEADER ──────────────────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <a href="http://localhost:8000/" class="logo">
+      <span class="logo-icon">🌾</span>
+      <div class="logo-text">
+        <h1>FarmAI</h1>
+        <span>Smart Farming Assistant</span>
+      </div>
+    </a>
+    <div class="header-controls">
+      <select class="lang-select" id="langSelect" title="Select language">
+        <option value="en">🇬🇧 English</option>
+        <option value="hi">🇮🇳 हिंदी</option>
+        <option value="te">తెలుగు</option>
+        <option value="ta">தமிழ்</option>
+        <option value="kn">ಕನ್ನಡ</option>
+        <option value="mr">मराठी</option>
+        <option value="bn">বাংলা</option>
+        <option value="gu">ગુજરાતી</option>
+        <option value="pa">ਪੰਜਾਬੀ</option>
+        <option value="ml">മലയാളം</option>
+      </select>
+      <div class="status-badge">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connected</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ─── HERO ─────────────────────────────────────────────────── -->
+<section class="hero">
+  <span class="hero-emoji">🚜</span>
+  <h2>Your AI Farming Guide</h2>
+  <p>Ask anything about crops, pests, fertilizers, and government schemes — in your own language, anytime.</p>
+  <div class="hero-chips">
+    <span class="hero-chip">🌾 Crops</span>
+    <span class="hero-chip">🐛 Pest Control</span>
+    <span class="hero-chip">🧪 Fertilizers</span>
+    <span class="hero-chip">🏛️ Govt Schemes</span>
+    <span class="hero-chip">🌍 10 Languages</span>
+    <span class="hero-chip">📡 Offline Ready</span>
+  </div>
+</section>
+
+<!-- ─── MAIN ──────────────────────────────────────────────────── -->
+<div class="main-wrapper">
+
+  <!-- SIDEBAR ──────────────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <!-- Categories -->
+    <div class="sidebar-card">
+      <div class="sidebar-card-header">📂 Browse Topics</div>
+      <div class="sidebar-card-body" id="categoriesList">
+        <button class="cat-btn active" data-cat="all" onclick="setCategory(this,&#39;all&#39;)">
+          <span class="cat-icon">🔍</span> All Topics
+        </button>
+        <button class="cat-btn" data-cat="crops" onclick="setCategory(this,&#39;crops&#39;)">
+          <span class="cat-icon">🌾</span> Crops
+        </button>
+        <button class="cat-btn" data-cat="pests" onclick="setCategory(this,&#39;pests&#39;)">
+          <span class="cat-icon">🐛</span> Pests &amp; Diseases
+        </button>
+        <button class="cat-btn" data-cat="fertilizers" onclick="setCategory(this,&#39;fertilizers&#39;)">
+          <span class="cat-icon">🧪</span> Fertilizers
+        </button>
+        <button class="cat-btn" data-cat="schemes" onclick="setCategory(this,&#39;schemes&#39;)">
+          <span class="cat-icon">🏛️</span> Govt Schemes
+        </button>
+        <button class="cat-btn" data-cat="general" onclick="setCategory(this,&#39;general&#39;)">
+          <span class="cat-icon">📚</span> General
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Questions -->
+    <div class="sidebar-card">
+      <div class="sidebar-card-header">⚡ Quick Questions</div>
+      <div class="sidebar-card-body" id="suggestionsList"><button class="suggestion-btn" onclick="askSuggestion(this)">How do I grow rice in waterlogged soil?</button><button class="suggestion-btn" onclick="askSuggestion(this)">What is the best fertilizer for wheat?</button><button class="suggestion-btn" onclick="askSuggestion(this)">How to control Fall Armyworm in maize?</button><button class="suggestion-btn" onclick="askSuggestion(this)">Tell me about PM-KISAN scheme eligibility</button><button class="suggestion-btn" onclick="askSuggestion(this)">How to apply for Kisan Credit Card?</button><button class="suggestion-btn" onclick="askSuggestion(this)">What are the symptoms of zinc deficiency in crops?</button><button class="suggestion-btn" onclick="askSuggestion(this)">How to do drip irrigation in cotton?</button><button class="suggestion-btn" onclick="askSuggestion(this)">What is the MSP for paddy in 2024?</button><button class="suggestion-btn" onclick="askSuggestion(this)">How to control brown plant hopper in rice?</button><button class="suggestion-btn" onclick="askSuggestion(this)">Tell me about organic farming schemes</button></div>
+    </div>
+
+    <!-- Government Schemes Button -->
+    <div class="sidebar-card">
+      <div class="sidebar-card-header">🏛️ Government Schemes</div>
+      <div class="sidebar-card-body">
+        <button class="btn-send" style="width:100%;justify-content:center;margin-bottom:0.5rem" onclick="loadSchemes()">
+          📋 View All Schemes
+        </button>
+        <p style="font-size:0.78rem;color:var(--text-light);line-height:1.5;margin-top:0.5rem">
+          PM-KISAN · PMFBY · KCC · eNAM · Soil Health Card · PMKSY · MSP and more
+        </p>
+      </div>
+    </div>
+
+    <!-- Helplines -->
+    <div class="sidebar-card">
+      <div class="sidebar-card-header">📞 Farmer Helplines</div>
+      <div class="sidebar-card-body">
+        <div class="helpline-item">
+          <span class="helpline-icon">📱</span>
+          <div class="helpline-info">
+            <strong>Kisan Call Centre</strong>
+            <span>1800-180-1551 (Free)</span>
+          </div>
+        </div>
+        <div class="helpline-item">
+          <span class="helpline-icon">🌿</span>
+          <div class="helpline-info">
+            <strong>PM-KISAN Helpline</strong>
+            <span>155261 / 011-24300606</span>
+          </div>
+        </div>
+        <div class="helpline-item">
+          <span class="helpline-icon">🌦️</span>
+          <div class="helpline-info">
+            <strong>IMD Agromet</strong>
+            <span>meghdoot.imd.gov.in</span>
+          </div>
+        </div>
+        <div class="helpline-item">
+          <span class="helpline-icon">🏪</span>
+          <div class="helpline-info">
+            <strong>eNAM Market</strong>
+            <span>enam.gov.in</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- CHAT AREA ────────────────────────────────────────────── -->
+  <div class="chat-area">
+
+    <!-- Input Card -->
+    <div class="input-card">
+      <h3>🤖 Ask FarmAI</h3>
+      <div class="input-row">
+        <textarea id="queryInput" class="query-textarea" placeholder="Type your question in any language… e.g. &#39;मेरी गेहूं की फसल में पीलापन क्यों आ रहा है?&#39;" rows="3" onkeydown="handleKeydown(event)"></textarea>
+        <div class="btn-group">
+          <button class="btn-send" id="sendBtn" onclick="sendQuery()">
+            <span>Ask</span> 🌾
+          </button>
+          <button class="btn-voice" id="voiceBtn" onclick="toggleVoice()" title="Voice input">🎙️</button>
+        </div>
+      </div>
+      <div class="input-footer">
+        <span>Press <kbd>Ctrl+Enter</kbd> to submit</span>
+        <span class="cat-active-label" id="catLabel"></span>
+      </div>
+    </div>
+
+    <!-- Schemes Panel -->
+    <div class="schemes-panel" id="schemesPanel">
+      <div class="schemes-header">
+        🏛️ Government Schemes for Farmers
+        <button class="schemes-close" onclick="closeSchemes()">✕</button>
+      </div>
+      <div class="schemes-body" id="schemesBody">
+        <p style="color:var(--text-light);font-size:0.85rem">Loading schemes…</p>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages-container" id="messagesContainer">
+      <!-- Welcome Message -->
+      <div class="welcome-card" id="welcomeCard">
+        <span class="big-emoji">👨‍🌾</span>
+        <h3>Namaste, Kisan!</h3>
+        <p>Welcome to FarmAI — your intelligent farming assistant.<br>
+        Ask me about crops, pest control, fertilizers, or government schemes in <strong>any Indian language</strong>.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Schemes Panel (Floated on mobile) -->
+<!-- ─── TOAST ──────────────────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<!-- ─── FOOTER ────────────────────────────────────────────────── -->
+<footer>
+  <strong>FarmAI</strong> – AI-powered agricultural assistant for Indian farmers<br>
+  Powered by FAISS semantic search · FastAPI backend · Multilingual NLP<br>
+  <span style="font-size:0.7rem">🌾 Jai Kisan! | Data from ICAR, DAC&amp;FW, PMKISAN, FASAL BIMA portals</span>
+</footer>
+
+<script src="./FarmAI – Smart Farming Assistant for India_files/app.js.download"></script>
+
+
+</body></html>
