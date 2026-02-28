@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kisan Call Centre Query Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green-dark:  #1b5e20;
+    --green-mid:   #2e7d32;
+    --green-light: #a5d6a7;
+    --green-bg:    #e8f5e9;
+    --blue-dark:   #1565c0;
+    --blue-mid:    #1976d2;
+    --blue-light:  #90caf9;
+    --blue-bg:     #f0f7ff;
+    --amber-dark:  #e65100;
+    --amber-mid:   #f57c00;
+    --amber-light: #ffb74d;
+    --amber-bg:    #fff8f0;
+    --text:        #1a1a1a;
+    --text-muted:  #555;
+    --border:      #d0d7de;
+    --bg:          #f6f8fa;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    color: var(--text);
+  }
+
+  /* ── Layout ── */
+  .layout { display: flex; min-height: 100vh; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 260px;
+    min-height: 100vh;
+    background: #fff;
+    border-right: 1.5px solid #e4e7ec;
+    padding: 2rem 1.2rem;
+    flex-shrink: 0;
+  }
+  .sidebar h3 {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #888;
+    margin-bottom: 0.9rem;
+  }
+  .sidebar ul { list-style: none; }
+  .sidebar ul li {
+    font-size: 0.87rem;
+    color: #444;
+    padding: 5px 0;
+    cursor: pointer;
+    line-height: 1.45;
+    border-bottom: 1px solid #f2f2f2;
+    transition: color 0.15s;
+  }
+  .sidebar ul li:hover { color: var(--green-mid); }
+  .sidebar ul li::before { content: "→ "; color: var(--green-light); }
+  .sidebar-divider { border: none; border-top: 1.5px solid #ebebeb; margin: 1.4rem 0; }
+  .sidebar .config-box {
+    background: #f8f8f8;
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+    font-size: 0.8rem;
+    color: #555;
+    line-height: 1.6;
+  }
+  .sidebar .config-box code {
+    display: block;
+    background: #efefef;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 0.75rem;
+    margin-top: 6px;
+    color: #333;
+    white-space: pre;
+  }
+
+  /* ── Main ── */
+  .main {
+    flex: 1;
+    padding: 2.5rem 3rem;
+    max-width: 860px;
+  }
+
+  /* ── Header ── */
+  .header { display: flex; align-items: center; gap: 16px; margin-bottom: 0.4rem; }
+  .header-icon { font-size: 3rem; line-height: 1; }
+  .header h1 {
+    font-size: 2.35rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.15;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.97rem;
+    margin: 0.5rem 0 1.8rem;
+    max-width: 580px;
+    line-height: 1.6;
+  }
+
+  /* ── Input row ── */
+  .query-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #444;
+    margin-bottom: 6px;
+  }
+  .input-row { display: flex; gap: 10px; align-items: center; }
+  .query-input {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 14px;
+    font-size: 1rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #fff;
+  }
+  .query-input:focus {
+    border-color: var(--green-mid);
+    box-shadow: 0 0 0 3px rgba(46,125,50,0.12);
+  }
+  .btn-get {
+    background: var(--green-bg);
+    color: var(--green-dark);
+    border: 1.5px solid var(--green-light);
+    border-radius: 7px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 10px 26px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s, border-color 0.2s;
+    white-space: nowrap;
+  }
+  .btn-get:hover { background: #c8e6c9; border-color: #66bb6a; }
+  .btn-get:active { transform: scale(0.98); }
+
+  /* ── Loading bar ── */
+  .progress-bar {
+    height: 4px;
+    background: linear-gradient(90deg, #a5d6a7, #2e7d32, #a5d6a7);
+    background-size: 200% 100%;
+    border-radius: 2px;
+    margin-top: 12px;
+    animation: shimmer 1.5s infinite linear;
+    display: none;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* ── Expert badge ── */
+  .expert-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--green-bg);
+    border: 1.2px solid var(--green-light);
+    border-radius: 20px;
+    padding: 5px 15px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--green-mid);
+    margin: 1.6rem 0 1rem;
+  }
+
+  /* ── Answer cards ── */
+  .answer-card {
+    border-radius: 11px;
+    padding: 1.4rem 1.6rem;
+    margin-top: 1.3rem;
+    animation: fadeUp 0.4s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .offline-card { background: var(--blue-bg); border: 1.5px solid var(--blue-light); }
+  .online-card  { background: var(--amber-bg); border: 1.5px solid var(--amber-light); }
+
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 0.9rem; }
+  .card-icon { font-size: 1.5rem; }
+  .card-title {
+    font-size: 1.22rem;
+    font-weight: 700;
+    margin: 0;
+  }
+  .offline-card .card-title { color: var(--blue-dark); }
+  .online-card  .card-title { color: var(--amber-dark); }
+
+  .sub-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #888;
+    margin-bottom: 0.7rem;
+  }
+
+  .offline-list { padding-left: 1.3rem; }
+  .offline-list li {
+    margin-bottom: 0.75rem;
+    line-height: 1.7;
+    font-size: 0.96rem;
+    font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
+    color: #212121;
+  }
+
+  .online-prose {
+    font-size: 0.97rem;
+    line-height: 1.78;
+    color: #2d2d2d;
+  }
+
+  /* ── Answers hidden initially ── */
+  .answers-section { display: none; }
+
+  /* ── Warning ── */
+  .warning-box {
+    background: #fff3e0;
+    border: 1.5px solid #ffb74d;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    color: #7b4700;
+    margin-top: 12px;
+    display: none;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .main { padding: 1.5rem 1.2rem; }
+    .header h1 { font-size: 1.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <h3>💡 Sample Queries</h3>
+    <ul id="sampleList">
+      <li>How to control aphids in mustard?</li>
+      <li>What is the treatment for leaf spot in tomato?</li>
+      <li>Suggest pesticide for whitefly in cotton.</li>
+      <li>How to prevent fruit borer in brinjal?</li>
+      <li>What fertilizer during flowering in maize?</li>
+      <li>How to protect paddy from blast disease?</li>
+      <li>What is the solution for jassids in cotton?</li>
+      <li>How to apply for PM Kisan Samman Nidhi?</li>
+      <li>Dosage of neem oil for aphids?</li>
+      <li>How to treat blight in potato crops?</li>
+    </ul>
+
+    <hr class="sidebar-divider" />
+
+    <h3>⚙️ Configuration</h3>
+    <div class="config-box">
+      Add IBM Watsonx credentials to <strong>.env</strong>:
+      <code>WATSONX_PROJECT_ID=...
+WATSONX_API_KEY=...
+MODEL_ID=ibm/granite-3-8b-instruct</code>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- Header -->
+    <div class="header">
+      <span class="header-icon">🌾</span>
+      <h1>Kisan Call Centre Query<br>Assistant</h1>
+    </div>
+    <p class="subtitle">
+      Ask your farming or crop-related question and get a reliable response
+      powered by IBM Watsonx Granite LLM and KCC database.
+    </p>
+
+    <!-- Input -->
+    <p class="query-label">🌱 Enter your agricultural query:</p>
+    <div class="input-row">
+      <input
+        id="queryInput"
+        class="query-input"
+        type="text"
+        placeholder="e.g., How to control whiteflies in cotton?"
+      />
+      <button class="btn-get" onclick="handleQuery()">Get Answer</button>
+    </div>
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="warning-box" id="warningBox">⚠️ Please enter a question.</div>
+
+    <!-- Answers -->
+    <div class="answers-section" id="answersSection">
+      <div class="expert-badge">✅ Expert Recommendations</div>
+
+      <!-- Offline card -->
+      <div class="answer-card offline-card">
+        <div class="card-header">
+          <span class="card-icon">🔷</span>
+          <h2 class="card-title">Retrieved Answer (Offline - Based on KCC Data):</h2>
+        </div>
+        <p class="sub-label">🔷 Offline Answer (retrieved Q&amp;A):</p>
+        <ol class="offline-list" id="offlineList"></ol>
+      </div>
+
+      <!-- Online card -->
+      <div class="answer-card online-card">
+        <div class="card-header">
+          <span class="card-icon">🧠</span>
+          <h2 class="card-title">LLM Answer (Online - IBM Granite):</h2>
+        </div>
+        <p class="sub-label">🧠 Online Answer (LLM):</p>
+        <p class="online-prose" id="onlineAnswer"></p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ─── KCC Q&A Knowledge Base (offline simulation) ───────────────────────────
+const KCC_DATA = [
+  { q: "aphids mustard", a: "For aphid control in mustard: Spray Dimethoate 30% EC 300ml per acre in 150L water. Or use Imidacloprid 17.8 SL 100ml in 200L water per acre. Apply in early morning or evening for best results.", crop: "Mustard" },
+  { q: "leaf spot tomato", a: "For leaf spot in tomato, spray Mancozeb 75%WP 2g/L or Copper Oxychloride 50%WP 3g/L water. Remove infected leaves and improve air circulation between plants.", crop: "Tomato" },
+  { q: "whitefly cotton pesticide", a: "For whitefly in cotton: Spray Thiamethoxam 25 WG 100g/acre or Acetamiprid 20 SP 100g/acre in 200L water. Alternate chemicals to avoid resistance development.", crop: "Cotton" },
+  { q: "fruit borer brinjal prevent", a: "For fruit borer in brinjal: Spray Spinosad 45 SC at 75ml/acre or Emamectin Benzoate 5 SG at 100g/acre. Remove and destroy infected fruits. Use pheromone traps for monitoring.", crop: "Brinjal" },
+  { q: "fertilizer maize flowering", a: "During maize flowering, apply Potash (MOP) 50kg/acre. Also spray 1% Boron solution to improve pollination and grain setting. Ensure adequate moisture during this stage.", crop: "Maize" },
+  { q: "paddy blast disease protect", a: "For paddy blast: Spray Tricyclazole 75 WP at 300g/acre or Isoprothiolane 40 EC at 750ml/acre in 200L water. Drain excess water from field. Use resistant varieties.", crop: "Paddy" },
+  { q: "jassids cotton solution", a: "For jassids in cotton: Spray Imidacloprid 17.8 SL at 100ml/200L water/acre or Cypermethrin 10 EC at 300ml/acre. Avoid spraying during peak sunshine hours.", crop: "Cotton" },
+  { q: "PM Kisan Samman Nidhi apply", a: "Visit www.pmkisan.gov.in, click New Farmer Registration. Enter Aadhaar number, verify mobile OTP, fill land and bank details. Submit and note registration number. Helpline: 1800-115-526 (Toll Free).", crop: "Others" },
+  { q: "neem oil aphids dosage", a: "Neem oil 1500 ppm can be sprayed at 3ml/L water for aphid control. Mix well with water and a few drops of liquid soap as emulsifier. Spray on undersides of leaves in early morning or evening.", crop: "General" },
+  { q: "blight potato crop treat", a: "Spray Mancozeb 75%WP 2g/L or Metalaxyl+Mancozeb 2.5g/L water at 7-10 day intervals. Avoid overhead irrigation and destroy infected plant debris. Use certified disease-free seed tubers.", crop: "Potato" },
+  { q: "wheat rust control", a: "For wheat rust: Spray Propiconazole 25% EC at 200ml per acre in 200L water. Repeat after 15 days if infection persists. Use rust-resistant varieties like HD-3086.", crop: "Wheat" },
+  { q: "mustard sowing time", a: "Optimal mustard sowing time is October 1–15. Late sowing reduces yield. Varieties like Pusa Bold, RH-30, and Kranti are recommended. Ensure adequate soil moisture at sowing.", crop: "Mustard" },
+  { q: "urea nitrogen deficiency yellow", a: "Yellowing in crops may be due to nitrogen deficiency. Apply Urea 50kg/acre as top dressing or spray 2% urea solution. Also check for iron deficiency (interveinal chlorosis).", crop: "General" },
+  { q: "moong sow time", a: "Optimal time to sow moong is between March 10 and April 10. In hilly regions, sow in March. Varieties Pant-2, Meha, and HUOM-16 should be sown in April's first week.", crop: "Moong" },
+  { q: "weed wheat management", a: "For weed management in wheat, spray Clodinafop-Propargyl 15% WP at 400gm per acre in 200L water at 30-35 days after sowing. For broad-leaf weeds use 2,4-D Amine 500ml/acre.", crop: "Wheat" },
+  { q: "cotton thrips control", a: "For thrips in cotton: Spray Spinosad 45 SC 75ml/acre or Fipronil 5 SC 1L/acre. Avoid water stress which worsens thrips damage. Monitor regularly from seedling stage.", crop: "Cotton" },
+  { q: "paddy water management", a: "Paddy requires 1200-1500mm of water during growing season. Maintain 5cm standing water during tillering. Use SRI (System of Rice Intensification) method to save 30-40% water.", crop: "Paddy" },
+];
+
+// ─── Semantic search simulation ────────────────────────────────────────────
+function tokenize(text) {
+  return text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+}
+
+function similarity(query, entry) {
+  const qTokens = new Set(tokenize(query));
+  const eTokens = new Set(tokenize(entry.q + ' ' + entry.a + ' ' + entry.crop));
+  let overlap = 0;
+  qTokens.forEach(t => { if (eTokens.has(t)) overlap++; });
+  return overlap / Math.max(qTokens.size, 1);
+}
+
+function searchKCC(query, topK = 5) {
+  const scored = KCC_DATA.map(e => ({ entry: e, score: similarity(query, e) }));
+  scored.sort((a, b) => b.score - a.score);
+  return scored.filter(s => s.score > 0).slice(0, topK).map(s => s.entry);
+}
+
+// ─── LLM simulation ────────────────────────────────────────────────────────
+const LLM_RESPONSES = {
+  "aphid":   "Based on KCC database records, aphids in mustard and other crops are best controlled using systemic insecticides. Imidacloprid 17.8 SL at 100ml per 200L water per acre is highly effective. Apply during early morning or late evening to avoid harming beneficial insects. Repeat after 10-15 days if infestation persists. Neem-based biopesticides like neem oil at 3ml/L are also effective for light infestations and are environmentally safe.",
+  "blight":  "Late blight is a serious fungal disease caused by Phytophthora infestans. Spray Metalaxyl 8%+Mancozeb 64% WP at 2.5g/L water immediately upon seeing symptoms. Repeat every 7-10 days. Remove and destroy infected plant parts. Avoid overhead irrigation and ensure proper drainage. Use certified disease-free seed material for the next season.",
+  "fertilizer": "For optimal crop nutrition, follow a balanced NPK schedule based on soil test results. During flowering stage, emphasize Potassium (K) and micronutrients like Boron for fruit/grain setting. Top dressing with Urea provides quick nitrogen. Foliar sprays of 19:19:19 NPK at 5g/L are effective for correcting deficiencies quickly.",
+  "kisan":   "PM Kisan Samman Nidhi provides Rs 6,000 per year in 3 installments of Rs 2,000 each directly to farmers' bank accounts. To apply: visit www.pmkisan.gov.in → New Farmer Registration → Enter Aadhaar and bank details. Ensure land records are updated. Check status at Farmer Corner. Helpline: 1800-115-526 (Toll Free).",
+  "paddy":   "Rice blast is caused by Magnaporthe oryzae fungus. Use Tricyclazole 75 WP 300g/acre as preventive spray. If blast appears, drain field water for 3-5 days. Apply recommended fungicide twice at 15-day intervals. Maintain field sanitation and avoid excess nitrogen application which increases susceptibility.",
+  "default": "Based on the agricultural expert answers from the Kisan Call Centre database, the recommended approach involves integrated pest/disease management combining chemical controls with good agronomic practices. Apply the suggested pesticide/fungicide at the recommended dosage and timing. Monitor the crop regularly and consult your local Krishi Vigyan Kendra (KVK) for region-specific advice. For scheme-related queries, visit your nearest Common Service Centre (CSC) or call KCC helpline: 1800-180-1551."
+};
+
+function getLLMResponse(query) {
+  const q = query.toLowerCase();
+  if (q.includes("aphid") || q.includes("neem")) return LLM_RESPONSES["aphid"];
+  if (q.includes("blight") || q.includes("potato") || q.includes("blast")) return LLM_RESPONSES["blight"];
+  if (q.includes("fertilizer") || q.includes("npk") || q.includes("urea")) return LLM_RESPONSES["fertilizer"];
+  if (q.includes("kisan") || q.includes("scheme") || q.includes("pm")) return LLM_RESPONSES["kisan"];
+  if (q.includes("paddy") || q.includes("rice")) return LLM_RESPONSES["paddy"];
+  return LLM_RESPONSES["default"];
+}
+
+// ─── Main handler ──────────────────────────────────────────────────────────
+function handleQuery() {
+  const query = document.getElementById('queryInput').value.trim();
+  const warn = document.getElementById('warningBox');
+  const progress = document.getElementById('progressBar');
+  const section = document.getElementById('answersSection');
+
+  warn.style.display = 'none';
+  section.style.display = 'none';
+
+  if (!query) {
+    warn.style.display = 'block';
+    return;
+  }
+
+  progress.style.display = 'block';
+
+  setTimeout(() => {
+    progress.style.display = 'none';
+
+    // Search KCC
+    const results = searchKCC(query, 5);
+
+    // Populate offline list
+    const list = document.getElementById('offlineList');
+    list.innerHTML = '';
+    if (results.length === 0) {
+      list.innerHTML = '<li>No relevant records found in the KCC database for this query.</li>';
+    } else {
+      results.forEach(r => {
+        const li = document.createElement('li');
+        li.textContent = r.a;
+        list.appendChild(li);
+      });
+    }
+
+    // Populate online answer
+    document.getElementById('onlineAnswer').textContent = getLLMResponse(query);
+
+    section.style.display = 'block';
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 1400);
+}
+
+// ─── Sample query click ────────────────────────────────────────────────────
+document.querySelectorAll('#sampleList li').forEach(li => {
+  li.addEventListener('click', () => {
+    document.getElementById('queryInput').value = li.textContent.replace(/^→\s*/, '');
+    handleQuery();
+  });
+});
+
+// ─── Enter key ─────────────────────────────────────────────────────────────
+document.getElementById('queryInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleQuery();
+});
+</script>
+</body>
+</html>

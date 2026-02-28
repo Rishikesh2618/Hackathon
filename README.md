@@ -1,267 +1,210 @@
-# 🌾 FarmAI — Crop Assistant API
-### Gen AI Hackathon | Python · FastAPI · FAISS · IBM watsonx · NLP
+# 🌾 Kisan Call Centre Query Assistant
 
-> AI-powered assistant for farmers: crop Q&A, disease diagnosis, weather advice,
-> government schemes — multilingual, offline-capable, RAG-powered.
+An AI-Powered Agricultural Helpdesk using **IBM Watsonx Granite LLM** and **FAISS**.
 
 ---
 
-## 🏗️ Architecture
+## Project Overview
 
-```
-Farmer's Query (any language)
-         │
-         ▼
-   ┌─────────────┐
-   │  FastAPI     │  ← REST API (4 endpoints)
-   └──────┬──────┘
-          │
-          ▼
-   ┌─────────────────────────┐
-   │  FAISS Knowledge Search │  ← Local vector DB (works OFFLINE)
-   │  sentence-transformers  │    Searches crop/pest/scheme docs
-   └──────────┬──────────────┘
-              │  Top-K relevant chunks
-              ▼
-   ┌─────────────────────────┐
-   │  IBM watsonx.ai         │  ← Granite / Llama 3 / Mistral
-   │  (RAG-augmented prompt) │    Generates final answer
-   └──────────┬──────────────┘
-              │  Falls back if offline ↓
-   ┌─────────────────────────┐
-   │  Offline Fallback       │  ← Returns FAISS results directly
-   │  (raw knowledge mode)   │    No internet needed
-   └─────────────────────────┘
-              │
-              ▼
-   Multilingual Response (en/hi/te/ta/mr/kn/gu/pa/bn)
-```
+The **Kisan Call Centre Query Assistant** is an intelligent agricultural query resolution system built for rural support and information dissemination. It leverages:
+
+- **IBM Watsonx Granite LLM** (`ibm/granite-3-8b-instruct`) for natural language generation
+- **FAISS** (Facebook AI Similarity Search) for fast semantic vector search
+- **Sentence Transformers** (`all-MiniLM-L6-v2`) for embedding generation
+- **Streamlit** for the interactive web frontend
+
+The tool works in both **offline** (FAISS-only) and **online** (LLM-enhanced) modes.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-farmai/
-├── app/
-│   ├── main.py                      # FastAPI app + router registration
-│   ├── routers/
-│   │   ├── chat.py                  # /api/chat    — General Q&A
-│   │   ├── disease.py               # /api/disease — Disease diagnosis
-│   │   ├── weather.py               # /api/weather — Weather advice
-│   │   └── schemes.py               # /api/schemes — Govt schemes
-│   └── services/
-│       ├── rag_service.py           # FAISS index build + retrieval
-│       └── ibm_service.py           # IBM watsonx API wrapper + offline fallback
+kisan_assistant/
 ├── data/
-│   └── docs/                        # ← Add your knowledge documents here
-│       └── sample_knowledge.json    # Sample: diseases, schemes, crops
-├── build_index.py                   # Run ONCE to build FAISS index
-├── requirements.txt
-├── .env.example
+│   ├── raw_kcc.csv              # Raw KCC dataset (input)
+│   ├── clean_kcc.csv            # Cleaned dataset (auto-generated)
+│   └── kcc_qa_pairs.json        # Q&A pairs JSON (auto-generated)
+│
+├── embeddings/
+│   └── kcc_embeddings.pkl       # Vector embeddings (auto-generated)
+│
+├── vector_store/
+│   ├── faiss_indexer.py         # FAISSVectorStore class
+│   ├── build_faiss.py           # Build FAISS index script
+│   ├── faiss.index              # FAISS index file (auto-generated)
+│   └── meta.pkl                 # Metadata store (auto-generated)
+│
+├── models/
+│   └── granite_llm.py           # IBM Watsonx Granite LLM integration
+│
+├── services/
+│   ├── preprocess_data.py       # Data cleaning pipeline
+│   ├── generate_embeddings.py   # Embedding generation
+│   └── query_handler.py         # Core RAG pipeline
+│
+├── ui/
+│   └── app.py                   # Streamlit frontend
+│
+├── utils/
+│   └── text_cleaning.py         # Shared text utilities
+│
+├── setup_pipeline.py            # One-shot setup script
+├── requirements.txt             # Python dependencies
+├── .env.example                 # Environment variables template
 └── README.md
 ```
 
 ---
 
-## ⚡ Quick Start
+## Prerequisites
 
-### 1. Install dependencies
+- Python **3.9+**
+- IBM Cloud account with **Watsonx** enabled
+- VS Code or any Python IDE
+- (Optional) Virtual environment
+
+---
+
+## Setup Instructions
+
+### 1. Clone / Download the project
+
+```bash
+cd kisan_assistant
+```
+
+### 2. Create a virtual environment (recommended)
+
+```bash
+python -m venv venv
+source venv/bin/activate        # Linux / macOS
+venv\Scripts\activate           # Windows
+```
+
+### 3. Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Set up IBM watsonx credentials
+### 4. Configure IBM Watsonx credentials
+
+Copy `.env.example` to `.env` and fill in your credentials:
+
 ```bash
 cp .env.example .env
-# Edit .env with your IBM API key and Project ID
 ```
 
-Get credentials: **https://cloud.ibm.com → watsonx.ai → Projects → Manage**
-
-### 3. Build the FAISS knowledge index
-```bash
-python build_index.py
-# Output: ✅ Done! Index stats: {vectors: 87, chunks: 87}
+Edit `.env`:
+```
+WATSONX_PROJECT_ID=your_project_id_here
+WATSONX_API_KEY=your_api_key_here
+MODEL_ID=ibm/granite-3-8b-instruct
 ```
 
-### 4. Start the API server
-```bash
-uvicorn app.main:app --reload --port 8000
-```
+> **Note:** The app works in offline mode even without IBM credentials.
 
-### 5. Open interactive docs
-**http://localhost:8000/docs** — Swagger UI, test all endpoints live
-
----
-
-## 🔌 API Endpoints
-
-### `POST /api/chat/` — General Crop Chat
-```json
-// Request
-{
-  "message": "When should I apply urea to wheat?",
-  "language": "hi",
-  "history": []
-}
-
-// Response
-{
-  "reply": "गेहूं में यूरिया को दो बार डालना चाहिए...",
-  "sources": ["wheat_basics", "fertilizer_nitrogen"],
-  "language_used": "Hindi",
-  "mode": "ibm_watsonx"
-}
-```
-
----
-
-### `POST /api/disease/` — Disease Diagnosis
-```json
-// Request
-{
-  "crop": "tomato",
-  "symptoms": "Yellow-brown spots on leaves, white fungal growth underneath, spreading fast after rain",
-  "growth_stage": "fruiting",
-  "language": "te",
-  "additional_info": "Heavy rain last 3 days, high humidity"
-}
-
-// Response
-{
-  "crop": "tomato",
-  "diagnosis": "TOP SUSPECTED DISEASE: Late Blight (Phytophthora infestans)...",
-  "sources": ["late_blight"],
-  "language_used": "Telugu",
-  "mode": "ibm_watsonx"
-}
-```
-
----
-
-### `POST /api/weather/advice` — Weather-Aware Advice
-```json
-// Request
-{
-  "crop": "wheat",
-  "crop_stage": "flowering",
-  "planned_activity": "spray fungicide",
-  "location": "Punjab",
-  "language": "pa",
-  "weather": {
-    "temperature_c": 22,
-    "humidity_percent": 85,
-    "wind_speed_kmh": 8,
-    "condition": "cloudy",
-    "forecast_next_days": "Rain expected tomorrow"
-  }
-}
-```
-
----
-
-### `POST /api/schemes/` — Government Scheme Lookup
-```json
-// Request
-{
-  "query": "crop insurance for kharif season",
-  "state": "Maharashtra",
-  "farmer_type": "small",
-  "language": "mr"
-}
-```
-
-### `GET /api/schemes/list` — All Known Schemes
-Returns quick reference list of PM-KISAN, PMFBY, KCC, PMKSY, Soil Health Card, eNAM.
-
----
-
-## 📚 Adding Your Own Knowledge
-
-Place files in `data/docs/` then run `python build_index.py --force`:
-
-**Text file** (`wheat_pests.txt`):
-```
-Aphids on wheat cause leaf curl and sticky residue...
-Control: Imidacloprid 17.8 SL @ 0.5 ml/L water...
-```
-
-**JSON file** (`schemes_mp.json`):
-```json
-[
-  {
-    "text": "MP Kisan Anudan Yojana gives subsidy for farm equipment...",
-    "lang": "hi",
-    "topic": "mp_kisan_anudan"
-  }
-]
-```
-
----
-
-## 🌐 Supported Languages
-
-| Code | Language | Code | Language |
-|------|----------|------|----------|
-| `en` | English  | `kn` | Kannada  |
-| `hi` | Hindi    | `gu` | Gujarati |
-| `te` | Telugu   | `pa` | Punjabi  |
-| `ta` | Tamil    | `bn` | Bengali  |
-| `mr` | Marathi  |      |          |
-
----
-
-## 📴 Offline Capability
-
-The system works at **two levels**:
-
-| Component | Online | Offline |
-|-----------|--------|---------|
-| FAISS retrieval | ✅ | ✅ (runs locally) |
-| Embeddings (sentence-transformers) | ✅ | ✅ (local model) |
-| IBM watsonx generation | ✅ | ❌ (needs internet) |
-| Offline fallback | — | ✅ returns raw knowledge |
-
-In low-connectivity areas, set up the server locally on a Raspberry Pi or laptop — FAISS + sentence-transformers run without internet after the first setup. Farmers get knowledge retrieval even without IBM watsonx.
-
----
-
-## 🧪 curl Examples
+### 5. Run the setup pipeline (first time only)
 
 ```bash
-# Chat in Telugu
-curl -X POST http://localhost:8000/api/chat/ \
-  -H "Content-Type: application/json" \
-  -d '{"message": "వరి పంటకు ఏ ఎరువు వేయాలి?", "language": "te"}'
-
-# Disease diagnosis
-curl -X POST http://localhost:8000/api/disease/ \
-  -H "Content-Type: application/json" \
-  -d '{"crop": "rice", "symptoms": "Brown spots, stunted growth", "language": "hi"}'
-
-# Scheme lookup
-curl -X POST http://localhost:8000/api/schemes/ \
-  -H "Content-Type: application/json" \
-  -d '{"query": "crop insurance", "state": "Punjab", "language": "pa"}'
-
-# Health check
-curl http://localhost:8000/health
+python setup_pipeline.py
 ```
 
+This will:
+1. Preprocess `data/raw_kcc.csv` → `clean_kcc.csv` + `kcc_qa_pairs.json`
+2. Generate sentence embeddings → `embeddings/kcc_embeddings.pkl`
+3. Build FAISS index → `vector_store/faiss.index` + `vector_store/meta.pkl`
+
+### 6. Launch the Streamlit app
+
+```bash
+streamlit run ui/app.py
+```
+
+Open your browser at **http://localhost:8501**
+
 ---
 
-## 🏆 Hackathon Demo Script (5 minutes)
+## How It Works
 
-1. **Show architecture** — "FAISS finds relevant knowledge, IBM watsonx generates the answer"
-2. **Demo `/api/chat`** — Ask "wheat fertilizer schedule" in English, then Hindi
-3. **Demo `/api/disease`** — Paste real disease symptoms, show structured diagnosis
-4. **Demo `/api/schemes`** — "What schemes am I eligible for as a small farmer in Maharashtra?"
-5. **Show offline mode** — Disconnect internet, show FAISS fallback still returns knowledge
-6. **Show `/docs`** — Clean Swagger UI = production-ready
+### Architecture
+
+```
+User Query
+    │
+    ▼
+[Sentence Transformer]  ←── all-MiniLM-L6-v2
+    │  (embed query)
+    ▼
+[FAISS Vector Store]    ←── Pre-indexed KCC Q&A embeddings
+    │  (top-k retrieval)
+    ▼
+[Offline Answer]        ── Directly formatted retrieved Q&A
+    │
+    ├──► [Granite LLM]  ←── IBM Watsonx API (ibm/granite-3-8b-instruct)
+    │         │  (RAG prompt)
+    │         ▼
+    │    [Online Answer] ── Natural language generation
+    │
+    ▼
+[Streamlit UI]          ── Shows both answers side by side
+```
+
+### Pipeline Steps
+
+| Step | Script | Description |
+|------|--------|-------------|
+| 1 | `preprocess_data.py` | Clean raw CSV → Q&A pairs |
+| 2 | `generate_embeddings.py` | Embed Q&A with SentenceTransformer |
+| 3 | `build_faiss.py` | Index embeddings with FAISS |
+| 4 | `query_handler.py` | Embed query → retrieve top-k → build prompt |
+| 5 | `granite_llm.py` | Send prompt to IBM Granite → parse response |
+| 6 | `app.py` | Display offline + online answers in Streamlit |
 
 ---
 
-## 📞 Farmer Helpline Integration
-Kisan Call Centre: **1800-180-1551** (free, 24x7, 22 languages)
-Always shown in offline fallback responses.
+## Sample Queries
+
+| # | Query |
+|---|-------|
+| 1 | How to control aphids in mustard? |
+| 2 | What is the treatment for leaf spot in tomato? |
+| 3 | Suggest pesticide for whitefly in cotton. |
+| 4 | How to prevent fruit borer in brinjal? |
+| 5 | What fertilizer is recommended during flowering in maize? |
+| 6 | How to protect paddy from blast disease? |
+| 7 | What is the solution for jassids in cotton? |
+| 8 | How to apply for PM Kisan Samman Nidhi scheme? |
+| 9 | What is the dosage of neem oil for aphids? |
+| 10 | How to treat blight in potato crops? |
+
+---
+
+## Technology Stack
+
+| Component | Technology |
+|-----------|-----------|
+| LLM | IBM Watsonx Granite (`ibm/granite-3-8b-instruct`) |
+| Embedding Model | Sentence Transformers (`all-MiniLM-L6-v2`) |
+| Vector Search | FAISS (Facebook AI Similarity Search) |
+| Frontend | Streamlit |
+| Language | Python 3.9+ |
+
+---
+
+## Extending the Project
+
+- **Add more data**: Replace/augment `data/raw_kcc.csv` and re-run `setup_pipeline.py`
+- **Add Hindi UI**: Wrap Streamlit with translation using `googletrans` or `indic-nlp`
+- **Voice input**: Integrate `SpeechRecognition` library for voice queries
+- **Deployment**: Deploy on Streamlit Cloud, AWS, or an Agri-kiosk device
+
+---
+
+## Credits
+
+Built for **Kisan Call Centre (KCC)** rural support using AI/ML to bridge the knowledge gap for Indian farmers.
+
+- **Platform**: SmartBridge × Smart Internz
+- **Model**: IBM Watsonx Granite LLM
